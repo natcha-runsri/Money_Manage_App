@@ -23,19 +23,19 @@ class _AddGoalPageState extends State<AddGoalPage> {
   String selectedCategory = "Food";
 
   List<Map<String,dynamic>> categories = [
-    {"name":"Travel","icon":Icons.flight},
-    {"name":"Home","icon":Icons.home},
-    {"name":"Bills","icon":Icons.receipt},
-    {"name":"Food","icon":Icons.restaurant},
-    {"name":"Shopping","icon":Icons.shopping_bag},
-    {"name":"Other","icon":Icons.category},
+    {"name":"Travel","icon":Icons.flight, "color": Color(0xffFF6B6B)},
+    {"name":"Home","icon":Icons.home, "color": Color(0xff4ECDC4)},
+    {"name":"Bills","icon":Icons.receipt, "color": Color(0xff45B7D1)},
+    {"name":"Food","icon":Icons.restaurant, "color": Color(0xff96CEB4)},
+    {"name":"Shopping","icon":Icons.shopping_bag, "color": Color(0xffFFEAA7)},
+    {"name":"Other","icon":Icons.category, "color": Color(0xffDDA0DD)},
   ];
 
   /// SAVE BUDGET
   Future<void> saveBudget() async {
 
     final uid = FirebaseAuth.instance.currentUser!.uid;
-
+    DateTime selectedDate = DateTime.now();
     double amount =
         double.parse(amountController.text.replaceAll(",", ""));
 
@@ -52,6 +52,9 @@ class _AddGoalPageState extends State<AddGoalPage> {
       "note": noteController.text,
       "reminder": reminder,
       "created_at": Timestamp.now(),
+      "used": 0,
+      "status": "active",
+      "alert": 0.8,
     });
 
     Navigator.pop(context);
@@ -133,7 +136,7 @@ class _AddGoalPageState extends State<AddGoalPage> {
                       margin: const EdgeInsets.only(right:10),
                       child: CircleAvatar(
                         backgroundColor:
-                        selected ? Colors.green : Colors.grey.shade300,
+                        selected ? cat["color"] : Colors.grey.shade300,
                         child: Icon(
                           cat["icon"],
                           color: selected ? Colors.white : Colors.black54,
@@ -273,8 +276,6 @@ class _AddGoalPageState extends State<AddGoalPage> {
                   if(amountController.text.isEmpty) return;
 
                   await saveBudget();
-
-                  Navigator.pop(context);
 
                 },
                 child: const Text(

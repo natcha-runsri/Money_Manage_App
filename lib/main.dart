@@ -5,12 +5,21 @@ import 'dart:async';
 import 'login&register/login.dart';
 import 'buttom_navigation/homepage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: false,
+  );
+
   final prefs = await SharedPreferences.getInstance();
   bool loggedIn = prefs.getBool('logged_in') ?? false;
+
   runApp(MyApp(loggedIn));
 }
 
@@ -34,6 +43,7 @@ class OnboardingCarousel extends StatefulWidget {
   State<OnboardingCarousel> createState() => _OnboardingCarouselState();
 }
 
+// หน้าแรกที่แสดงเมื่อเปิดแอปครั้งแรก
 class _OnboardingCarouselState extends State<OnboardingCarousel> {
   final PageController _controller = PageController();
   int _index = 0;
@@ -43,8 +53,7 @@ class _OnboardingCarouselState extends State<OnboardingCarousel> {
     _OnboardData(
       image: "images/banner1.png",
       title: "Welcome to Pocket Money",
-      desc:
-          "เราจะช่วยคุณจัดระเบียบการเงิน เพิ่มความสะดวกสบายและเข้าใจที่มาที่ไปของเงินคุณได้ง่ายๆ",
+      desc: "เราจะช่วยคุณจัดระเบียบการเงิน เพิ่มความสะดวกสบายและเข้าใจที่มาที่ไปของเงินคุณได้ง่ายๆ",
     ),
     _OnboardData(
       image: "images/banner2.png",
@@ -63,7 +72,6 @@ class _OnboardingCarouselState extends State<OnboardingCarousel> {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 3), (_) {
       final nextPage = _controller.page!.toInt() + 1;
-
       _controller.animateToPage(
         nextPage,
         duration: const Duration(milliseconds: 500),
@@ -90,7 +98,6 @@ class _OnboardingCarouselState extends State<OnboardingCarousel> {
               child: Column(
                 children: [
                   const Spacer(),
-
                   /// PAGE VIEW
                   SizedBox(
                     height: 350,
@@ -104,7 +111,6 @@ class _OnboardingCarouselState extends State<OnboardingCarousel> {
                       },
                       itemBuilder: (context, i) {
                         final page = pages[i];
-
                         return Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -113,7 +119,6 @@ class _OnboardingCarouselState extends State<OnboardingCarousel> {
                               height: 220,
                               fit: BoxFit.contain,
                             ),
-
                             const SizedBox(height: 20),
 
                             Text(
@@ -124,7 +129,6 @@ class _OnboardingCarouselState extends State<OnboardingCarousel> {
                                 color: Color(0xff3B4E6B),
                               ),
                             ),
-
                             const SizedBox(height: 8),
 
                             Padding(
@@ -145,10 +149,9 @@ class _OnboardingCarouselState extends State<OnboardingCarousel> {
                       },
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
-                  /// DOTS
+                  
+                  // DOTS
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(pages.length, (i) {
@@ -169,10 +172,9 @@ class _OnboardingCarouselState extends State<OnboardingCarousel> {
                       );
                     }),
                   ),
-
                   const SizedBox(height: 80),
 
-                  /// LOGIN BUTTON
+                  // LOGIN BUTTON
                   SizedBox(
                     width: 180,
                     height: 50,

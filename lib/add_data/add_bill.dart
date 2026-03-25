@@ -10,7 +10,6 @@ class AddSchedulePage extends StatefulWidget {
 }
 
 class _AddSchedulePageState extends State<AddSchedulePage> {
-
   DateTime selectedDate = DateTime.now();
 
   final billController = TextEditingController();
@@ -22,7 +21,6 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
 
   /// DATE PICKER
   Future<void> pickDate() async {
-
     DateTime? date = await showDatePicker(
       context: context,
       initialDate: selectedDate,
@@ -30,7 +28,7 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
       lastDate: DateTime(2100),
     );
 
-    if(date != null){
+    if (date != null) {
       setState(() {
         selectedDate = date;
       });
@@ -39,36 +37,45 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
 
   /// SAVE BILL
   Future<void> saveBill() async {
-
     final uid = FirebaseAuth.instance.currentUser!.uid;
+    double? amount = double.tryParse(amountController.text);
+    if (amount == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("กรอกจำนวนเงินให้ถูกต้อง")));
+      return;
+    }
+    if (billController.text.isEmpty || amountController.text.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("กรอกข้อมูลให้ครบ")));
+      return;
+    }
 
     await FirebaseFirestore.instance
         .collection("user")
         .doc(uid)
         .collection("bills")
         .add({
-
-      "bill_name": billController.text,
-      "amount": double.parse(amountController.text),
-      "status": status,
-      "note": noteController.text,
-      "reminder": reminder,
-      "date": Timestamp.fromDate(selectedDate),
-
-    });
+          "bill_name": billController.text,
+          "amount": amount,
+          "status": status,
+          "note": noteController.text,
+          "reminder": reminder,
+          "date": Timestamp.fromDate(selectedDate),
+          "notified": false,
+        });
   }
 
   /// STATUS POPUP
-  void openStatusPopup(){
-
+  void openStatusPopup() {
     showMenu(
       context: context,
       position: const RelativeRect.fromLTRB(100, 350, 20, 0),
       items: [
-
         PopupMenuItem(
           child: const Text("ยังไม่ชำระ"),
-          onTap: (){
+          onTap: () {
             setState(() {
               status = "ยังไม่ชำระ";
             });
@@ -77,37 +84,30 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
 
         PopupMenuItem(
           child: const Text("ชำระแล้ว"),
-          onTap: (){
+          onTap: () {
             setState(() {
               status = "ชำระแล้ว";
             });
           },
         ),
-
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
-      appBar: AppBar(
-        title: const Text("Add Bill"),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text("Add Bill"), centerTitle: true),
 
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             /// BILL NAME
             const Text("Bill Name"),
 
-            const SizedBox(height:8),
+            const SizedBox(height: 8),
 
             TextField(
               controller: billController,
@@ -120,12 +120,12 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
               ),
             ),
 
-            const SizedBox(height:20),
+            const SizedBox(height: 20),
 
             /// DATE
             const Text("Date"),
 
-            const SizedBox(height:8),
+            const SizedBox(height: 8),
 
             GestureDetector(
               onTap: pickDate,
@@ -138,22 +138,20 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-
                     Text("${selectedDate.toLocal()}".split(' ')[0]),
 
-                    const Icon(Icons.calendar_month)
-
+                    const Icon(Icons.calendar_month),
                   ],
                 ),
               ),
             ),
 
-            const SizedBox(height:20),
+            const SizedBox(height: 20),
 
             /// AMOUNT
             const Text("Amount"),
 
-            const SizedBox(height:8),
+            const SizedBox(height: 8),
 
             TextField(
               controller: amountController,
@@ -167,12 +165,12 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
               ),
             ),
 
-            const SizedBox(height:20),
+            const SizedBox(height: 20),
 
             /// STATUS
             const Text("Status"),
 
-            const SizedBox(height:8),
+            const SizedBox(height: 8),
 
             GestureDetector(
               onTap: openStatusPopup,
@@ -184,28 +182,26 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
                 ),
                 child: Row(
                   children: [
-
                     const Icon(Icons.check_circle_outline),
 
-                    const SizedBox(width:10),
+                    const SizedBox(width: 10),
 
                     Text(status),
 
                     const Spacer(),
 
-                    const Icon(Icons.arrow_drop_down)
-
+                    const Icon(Icons.arrow_drop_down),
                   ],
                 ),
               ),
             ),
 
-            const SizedBox(height:20),
+            const SizedBox(height: 20),
 
             /// NOTE
             const Text("Note"),
 
-            const SizedBox(height:8),
+            const SizedBox(height: 8),
 
             TextField(
               controller: noteController,
@@ -218,15 +214,14 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
               ),
             ),
 
-            const SizedBox(height:20),
+            const SizedBox(height: 20),
 
             /// REMINDER
             Row(
               children: [
-
                 const Icon(Icons.notifications_none),
 
-                const SizedBox(width:10),
+                const SizedBox(width: 10),
 
                 const Text("Reminder"),
 
@@ -235,13 +230,12 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
                 Switch(
                   value: reminder,
                   activeColor: const Color(0xff8B3A5A),
-                  onChanged: (v){
+                  onChanged: (v) {
                     setState(() {
                       reminder = v;
                     });
                   },
-                )
-
+                ),
               ],
             ),
 
@@ -252,7 +246,6 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff3F5576),
                   shape: RoundedRectangleBorder(
@@ -261,13 +254,11 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
                 ),
 
                 onPressed: () async {
-
-                  if(amountController.text.isEmpty) return;
+                  if (amountController.text.isEmpty) return;
 
                   await saveBill();
 
                   Navigator.pop(context);
-
                 },
 
                 child: const Text(
@@ -279,11 +270,17 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
                   ),
                 ),
               ),
-            )
-
+            ),
           ],
         ),
       ),
     );
   }
+  @override
+void dispose() {
+  billController.dispose();
+  amountController.dispose();
+  noteController.dispose();
+  super.dispose();
+}
 }

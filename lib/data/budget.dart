@@ -17,24 +17,24 @@ class _BudgetPageState extends State<BudgetPage> {
 
   @override
   Widget build(BuildContext context) {
+    final collectionName = showBudget ? "budgets" : "saving_goals";
+
     return Scaffold(
       backgroundColor: const Color(0xffF6F3F5),
-
       appBar: AppBar(title: const Text("Budget"), centerTitle: true),
 
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            /// MONTHLY SUMMARY
-            StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance
-                      .collection("user")
-                      .doc(uid)
-                      .collection(showBudget ? "budgets" : "saving_goals")
-                      .snapshots(),
 
+            /// 🔥 MONTHLY SUMMARY (ใช้ used โดยตรง)
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection("user")
+                  .doc(uid)
+                  .collection(collectionName)
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const SizedBox();
@@ -47,16 +47,14 @@ class _BudgetPageState extends State<BudgetPage> {
                   final data = doc.data() as Map<String, dynamic>;
 
                   totalLimit += (data["amount"] ?? 0).toDouble();
+                  totalSpent += (data["used"] ?? 0).toDouble(); // ✅ FIX
                 }
 
-                double percent = 0;
+                double percent =
+                    totalLimit > 0 ? totalSpent / totalLimit : 0;
 
-                if (totalLimit > 0) {
-                  percent = totalSpent / totalLimit;
-                }
                 return Container(
                   padding: const EdgeInsets.all(16),
-
                   decoration: BoxDecoration(
                     color: Colors.purple.shade50,
                     borderRadius: BorderRadius.circular(16),
@@ -66,12 +64,12 @@ class _BudgetPageState extends State<BudgetPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             "Monthly Budget ฿${totalLimit.toStringAsFixed(0)}",
                           ),
-
                           Text(
                             "${(percent * 100).toStringAsFixed(0)}%",
                             style: const TextStyle(color: Colors.red),
@@ -83,9 +81,8 @@ class _BudgetPageState extends State<BudgetPage> {
 
                       ClipRRect(
                         borderRadius: BorderRadius.circular(20),
-
                         child: LinearProgressIndicator(
-                          value: percent,
+                          value: percent.clamp(0, 1),
                           minHeight: 10,
                           backgroundColor: Colors.grey.shade300,
                           color: Colors.red,
@@ -106,7 +103,7 @@ class _BudgetPageState extends State<BudgetPage> {
 
             const SizedBox(height: 16),
 
-            /// TOGGLE
+            /// 🔥 TOGGLE
             Row(
               children: [
                 Expanded(
@@ -116,18 +113,14 @@ class _BudgetPageState extends State<BudgetPage> {
                         showBudget = true;
                       });
                     },
-
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
-
                       decoration: BoxDecoration(
-                        color:
-                            showBudget
-                                ? const Color(0xff1E3A8A)
-                                : Colors.grey.shade200,
+                        color: showBudget
+                            ? const Color(0xff1E3A8A)
+                            : Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(20),
                       ),
-
                       child: const Center(
                         child: Text(
                           "Budgets",
@@ -142,21 +135,18 @@ class _BudgetPageState extends State<BudgetPage> {
 
             const SizedBox(height: 12),
 
-            /// SEARCH
+            /// 🔥 SEARCH
             TextField(
               onChanged: (value) {
                 setState(() {
                   searchText = value;
                 });
               },
-
               decoration: InputDecoration(
                 hintText: "Search",
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: const Icon(Icons.calendar_today),
                 filled: true,
                 fillColor: Colors.white,
-
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -166,29 +156,26 @@ class _BudgetPageState extends State<BudgetPage> {
 
             const SizedBox(height: 16),
 
-            /// LIST
+            /// 🔥 LIST (ไม่มี Stream ซ้อนแล้ว)
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream:
-                    FirebaseFirestore.instance
-                        .collection("user")
-                        .doc(uid)
-                        .collection("budgets")
-                        .snapshots(),
-
+                stream: FirebaseFirestore.instance
+                    .collection("user")
+                    .doc(uid)
+                    .collection(collectionName)
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(
+                        child: CircularProgressIndicator());
                   }
 
-                  final docs =
-                      snapshot.data!.docs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-
-                        return data["name"].toLowerCase().contains(
-                          searchText.toLowerCase(),
-                        );
-                      }).toList();
+                  final docs = snapshot.data!.docs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return (data["name"] ?? "")
+                        .toLowerCase()
+                        .contains(searchText.toLowerCase());
+                  }).toList();
 
                   if (docs.isEmpty) {
                     return const Center(child: Text("No budget"));
@@ -196,44 +183,47 @@ class _BudgetPageState extends State<BudgetPage> {
 
                   return ListView.builder(
                     itemCount: docs.length,
-
                     itemBuilder: (context, index) {
-                      final data = docs[index].data() as Map<String, dynamic>;
+                      final data =
+                          docs[index].data() as Map<String, dynamic>;
 
-                      double limit = (data["amount"] ?? 0).toDouble();
-                      double spent = 0; // ถ้ายังไม่ได้คำนวณจาก transaction
+                      double limit =
+                          (data["amount"] ?? 0).toDouble();
 
-                      double percent = 0;
+                      double spent =
+                          (data["used"] ?? 0).toDouble(); // ✅ FIX
 
-                      if (limit > 0) {
-                        percent = spent / limit;
-                      }
+                      String name = data["name"] ?? "No name";
+
+                      double percent =
+                          limit > 0 ? spent / limit : 0;
 
                       bool close = percent > 0.8;
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 14),
-
                         padding: const EdgeInsets.all(14),
-
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(14),
                         ),
 
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
+                            Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
                               children: [
+
                                 Row(
                                   children: [
                                     CircleAvatar(
-                                      backgroundColor:
-                                          close ? Colors.red : Colors.green,
-
+                                      backgroundColor: close
+                                          ? Colors.red
+                                          : Colors.green,
                                       child: const Icon(
                                         Icons.category,
                                         color: Colors.white,
@@ -245,17 +235,17 @@ class _BudgetPageState extends State<BudgetPage> {
                                     Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
-
                                       children: [
                                         Text(
-                                          data["name"],
+                                          name,
                                           style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
+                                            fontWeight:
+                                                FontWeight.bold,
                                           ),
                                         ),
 
                                         Text(
-                                          "฿${spent.toStringAsFixed(0)} spent of ฿${limit.toStringAsFixed(0)}",
+                                          "฿${spent.toStringAsFixed(0)} / ฿${limit.toStringAsFixed(0)}",
                                         ),
                                       ],
                                     ),
@@ -263,18 +253,22 @@ class _BudgetPageState extends State<BudgetPage> {
                                 ),
 
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
+                                  padding:
+                                      const EdgeInsets.symmetric(
                                     horizontal: 10,
                                     vertical: 4,
                                   ),
-
                                   decoration: BoxDecoration(
-                                    color: close ? Colors.red : Colors.green,
-                                    borderRadius: BorderRadius.circular(20),
+                                    color: close
+                                        ? Colors.red
+                                        : Colors.green,
+                                    borderRadius:
+                                        BorderRadius.circular(20),
                                   ),
-
                                   child: Text(
-                                    close ? "Close to Limit" : "On track",
+                                    close
+                                        ? "Close to Limit"
+                                        : "On track",
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -287,20 +281,23 @@ class _BudgetPageState extends State<BudgetPage> {
                             const SizedBox(height: 10),
 
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-
+                              borderRadius:
+                                  BorderRadius.circular(20),
                               child: LinearProgressIndicator(
-                                value: percent,
+                                value: percent.clamp(0, 1),
                                 minHeight: 8,
-                                backgroundColor: Colors.grey.shade300,
-                                color: close ? Colors.red : Colors.green,
+                                backgroundColor:
+                                    Colors.grey.shade300,
+                                color: close
+                                    ? Colors.red
+                                    : Colors.green,
                               ),
                             ),
 
                             const SizedBox(height: 6),
 
                             Text(
-                              "You've used ${(percent * 100).toStringAsFixed(0)}% of your budget",
+                              "ใช้ไป ${(percent * 100).toStringAsFixed(0)}%",
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,

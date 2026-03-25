@@ -10,15 +10,16 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfileState extends State<ProfilePage> {
-
   final usernameController = TextEditingController();
   final emailController = TextEditingController();
   final accountController = TextEditingController();
-  final dateController = TextEditingController();
 
   final user = FirebaseAuth.instance.currentUser;
 
   bool isEdit = false;
+  String avatarText = "";
+
+  DateTime? selectedDate; // 🔥 birthday
 
   @override
   void initState() {
@@ -26,91 +27,152 @@ class _ProfileState extends State<ProfilePage> {
     loadUserData();
   }
 
-  /// โหลดข้อมูล
-  Future loadUserData() async {
-
-    var data = await FirebaseFirestore.instance
-        .collection("users")
+  /// 🔥 โหลดข้อมูล
+  Future<void> loadUserData() async {
+    final doc = await FirebaseFirestore.instance
+        .collection("user")
         .doc(user!.uid)
         .get();
 
-    if(data.exists){
+    if (doc.exists) {
+      final data = doc.data()!;
 
       usernameController.text = data["username"] ?? "";
       emailController.text = data["email"] ?? "";
       accountController.text = data["accountName"] ?? "";
-      dateController.text = data["date"] ?? "";
 
+      if (data["date"] != null) {
+        selectedDate = DateTime.parse(data["date"]);
+      }
+
+      avatarText = (data["username"] ?? "U")[0].toUpperCase();
+
+      setState(() {});
     }
-
   }
 
-  /// update
-  Future updateProfile() async {
-
+  /// 🔥 UPDATE
+  Future<void> updateProfile() async {
     await FirebaseFirestore.instance
-        .collection("users")
+        .collection("user")
         .doc(user!.uid)
-        .update({
-
+        .set({
       "username": usernameController.text,
       "email": emailController.text,
       "accountName": accountController.text,
-      "date": dateController.text,
-
-    });
+      "date": selectedDate?.toIso8601String(),
+    }, SetOptions(merge: true));
 
     setState(() {
       isEdit = false;
+      avatarText = usernameController.text.isNotEmpty
+          ? usernameController.text[0].toUpperCase()
+          : "U";
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Update Success")),
     );
-
   }
 
-  /// delete
-  Future deleteAccount() async {
+  /// 🔥 DELETE
+  Future<void> deleteAccount() async {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Account"),
+        content: const Text("คุณต้องการลบบัญชีใช่หรือไม่"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel")),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
 
-    await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user!.uid)
-        .delete();
+              await FirebaseFirestore.instance
+                  .collection("user")
+                  .doc(user!.uid)
+                  .delete();
 
-    await user!.delete();
-
+              await user!.delete();
+            },
+            child: const Text("Delete",
+                style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget textField(String title, TextEditingController controller){
-
+  /// 🔥 TEXTFIELD
+  Widget textField(String title, TextEditingController controller) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: TextField(
-
         controller: controller,
         enabled: isEdit,
-
         decoration: InputDecoration(
-
           labelText: title,
-
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
           ),
-
         ),
-
       ),
     );
+  }
 
+  /// 🔥 BIRTHDAY PICKER
+  Widget birthdayField() {
+    return GestureDetector(
+      onTap: isEdit
+          ? () async {
+              DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: selectedDate ?? DateTime(2000),
+                firstDate: DateTime(1950),
+                lastDate: DateTime.now(),
+              );
+
+              if (picked != null) {
+                setState(() {
+                  selectedDate = picked;
+                });
+              }
+            }
+          : null,
+      child: Container(
+        width: double.infinity,
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        margin: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              selectedDate == null
+                  ? "Birthday"
+                  : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
+            ),
+            const Icon(Icons.calendar_month),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       backgroundColor: const Color(0xffF6F3F5),
 
       appBar: AppBar(
@@ -118,145 +180,94 @@ class _ProfileState extends State<ProfilePage> {
         centerTitle: true,
       ),
 
-      body: Padding(
-
-        padding: const EdgeInsets.symmetric(horizontal: 25),
-
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
-
           children: [
 
             const SizedBox(height: 30),
 
-            /// avatar
-            const CircleAvatar(
-              radius: 45,
-              backgroundImage: NetworkImage(
-                "https://i.pravatar.cc/300",
+            /// 🔥 AVATAR
+            CircleAvatar(
+              radius: 50,
+              backgroundColor: const Color(0xff8B3A5A),
+              child: Text(
+                avatarText,
+                style: const TextStyle(
+                  fontSize: 30,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 20),
 
-            /// fields
             textField("Username", usernameController),
             textField("Email", emailController),
             textField("Account Name", accountController),
-            textField("Join Date", dateController),
 
-            const SizedBox(height: 30),
+            birthdayField(), // 🔥 ใช้แทน Join Date
 
-            /// edit / save button
+            const SizedBox(height: 20),
+
+            /// 🔥 SAVE BUTTON (modern)
             SizedBox(
-              width: 150,
-              height: 45,
+              width: double.infinity,
+              height: 55,
               child: ElevatedButton(
-
-                onPressed: (){
-
-                  if(isEdit){
+                onPressed: () {
+                  if (isEdit) {
                     updateProfile();
-                  }else{
-                    setState(() {
-                      isEdit = true;
-                    });
+                  } else {
+                    setState(() => isEdit = true);
                   }
-
                 },
-
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff3F5576),
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-
                 child: Text(
-                  isEdit ? "Save" : "Edit Profile"
+                  isEdit ? "Save" : "Edit Profile",
+                  style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600),
                 ),
-
               ),
             ),
 
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
 
-            /// delete
+            /// 🔥 DELETE BUTTON (clean)
             SizedBox(
-              width: 150,
-              height: 45,
-              child: ElevatedButton(
-
-                onPressed: (){
-
-                  showDialog(
-                    context: context,
-                    builder: (context){
-
-                      return AlertDialog(
-
-                        title: const Text("Delete Account"),
-
-                        content: const Text(
-                            "คุณต้องการลบบัญชีใช่หรือไม่ ?"),
-
-                        actions: [
-
-                          TextButton(
-                            onPressed: (){
-                              Navigator.pop(context);
-                            },
-                            child: const Text("Cancel"),
-                          ),
-
-                          TextButton(
-                            onPressed: (){
-                              Navigator.pop(context);
-                              deleteAccount();
-                            },
-                            child: const Text(
-                              "Delete",
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ),
-
-                        ],
-                      );
-
-                    },
-                  );
-
-                },
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+              width: double.infinity,
+              height: 55,
+              child: OutlinedButton(
+                onPressed: deleteAccount,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-
-                child: const Text("Delete Account"),
-
+                child: const Text(
+                  "Delete Account",
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
 
-            const SizedBox(height: 40),
-
-            const Text(
-              "Pocket Money",
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
+            const SizedBox(height: 30),
           ],
-
         ),
-
       ),
-
     );
-
   }
 }

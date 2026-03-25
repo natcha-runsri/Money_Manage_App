@@ -114,8 +114,6 @@ class PocketPage extends StatelessWidget {
                         },
                       ),
                     ),
-
-                    const Icon(Icons.notifications_none),
                   ],
                 ),
               ),

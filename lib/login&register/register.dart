@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../database/authenticationService.dart';
+import '../authenticationService.dart';
 import '../login&register/login.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -15,41 +15,82 @@ class _RegisterPageState extends State<RegisterPage> {
   final password = TextEditingController();
   final confirmPassword = TextEditingController();
 
+  void _showDialog(String message, {bool success = false}) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: [
+                Icon(
+                  success ? Icons.check_circle : Icons.error,
+                  color: success ? Colors.green : Colors.red,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  success ? "สำเร็จ" : "เกิดข้อผิดพลาด",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            content: Text(message, style: const TextStyle(fontSize: 15)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  "ตกลง",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // ฟังก์ชันสำหรับการสมัครสมาชิก
   Future<void> _register() async {
     if (email.text.isEmpty || password.text.isEmpty || username.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("กรอกข้อมูลให้ครบ")));
+      _showDialog("กรอกข้อมูลให้ครบ");
       return;
     }
 
     if (password.text != confirmPassword.text) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Password ไม่ตรงกัน")));
+      _showDialog("Password ไม่ตรงกัน");
       return;
     }
 
-    final ok = await AuthenticationService().register(
+    final result = await AuthenticationService().register(
       email.text,
       password.text,
-      username.text, // (ทางเลือก) ถ้าอยากเก็บชื่อผู้ใช้ด้วย
+      username.text,
     );
 
     if (!mounted) return;
 
-    if (ok) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("สมัครสมาชิกสำเร็จ")));
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
+    if (result == null) {
+      _showDialog("สมัครสมาชิกสำเร็จ", success: true);
+
+      Future.delayed(const Duration(seconds: 1), () {
+        if (!mounted) return;
+        Navigator.pop(context); // ปิด dialog
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+        );
+      });
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("สมัครสมาชิกไม่สำเร็จ")));
+      String message = "สมัครสมาชิกไม่สำเร็จ";
+
+      if (result == "email-already-in-use") {
+        message = "อีเมลนี้ถูกใช้งานแล้ว";
+      } else if (result == "username-already-in-use") {
+        message = "Username นี้ถูกใช้งานแล้ว";
+      }
+
+      _showDialog(message);
     }
   }
 
@@ -78,7 +119,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   color: Color.fromARGB(255, 34, 53, 77),
                 ),
               ),
-
               const SizedBox(height: 6),
 
               const Text(
@@ -88,8 +128,8 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
 
               const SizedBox(height: 30),
-              
-              /// Username 
+
+              // Username
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -106,7 +146,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
               const SizedBox(height: 5),
 
-              /// Email 
+              // Email
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -119,10 +159,9 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
               _input("Email", Icons.email, email),
-
               const SizedBox(height: 5),
 
-              /// Password
+              // Password
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -135,10 +174,9 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
               _input("Password", Icons.lock, password, true),
-
               const SizedBox(height: 7),
 
-              /// Confirm Password
+              // Confirm Password
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -156,10 +194,9 @@ class _RegisterPageState extends State<RegisterPage> {
                 confirmPassword,
                 true,
               ),
-
               const SizedBox(height: 30),
 
-              /// Sign Up Button
+              // Sign Up Button
               SizedBox(
                 width: 150,
                 height: 45,
@@ -181,23 +218,20 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 30),
 
-              const Divider(
-                color: Colors.grey,
-                thickness: 1,
-              ),
-
+              const Divider(color: Colors.grey, thickness: 1),
               const SizedBox(height: 10),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Already have an account? ",
-                      style: TextStyle(
-                        color: Color.fromARGB(255, 49, 75, 110), 
-                        fontWeight: FontWeight.bold),
+                  const Text(
+                    "Already have an account? ",
+                    style: TextStyle(
+                      color: Color.fromARGB(255, 49, 75, 110),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   GestureDetector(
                     onTap: () {
@@ -227,52 +261,42 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-Widget _input(String hint, IconData icon, TextEditingController controller,
-    [bool obscure = false]) {
-  return TextField(
-    controller: controller,
-    obscureText: obscure,
-    decoration: InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.grey),
+  // ส่วนของฟังก์ชันที่สร้างอินพุตฟิลด์ ตกแต่ง
+  Widget _input(
+    String hint,
+    IconData icon,
+    TextEditingController controller, [
+    bool obscure = false,
+  ]) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.grey),
 
-      prefixIcon: Icon(
-        icon,
-        color: const Color.fromARGB(255, 80, 42, 81),
-      ),
+        prefixIcon: Icon(icon, color: const Color.fromARGB(255, 80, 42, 81)),
 
-      filled: true,
-      fillColor: Colors.white,
+        filled: true,
+        fillColor: Colors.white,
 
-      contentPadding: const EdgeInsets.symmetric(
-        vertical: 5,
-        horizontal: 1,
-      ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 5, horizontal: 1),
 
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Colors.grey,
-          width: 1,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.grey, width: 1),
+        ),
+
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300, width: 1.2),
+        ),
+
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xff6B1E3A), width: 2),
         ),
       ),
-
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(
-          color: Colors.grey.shade300,
-          width: 1.2,
-        ),
-      ),
-
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xff6B1E3A),
-          width: 2,
-        ),
-      ),
-    ),
-  );
-}
+    );
+  }
 }

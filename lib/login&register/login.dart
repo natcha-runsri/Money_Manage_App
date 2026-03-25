@@ -1,7 +1,7 @@
 // loginpage.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // 👈 เพิ่มบรรทัดนี้
-import '../../database/authenticationService.dart';
+import '../authenticationService.dart';
 import '../login&register/register.dart';
 import '../buttom_navigation/homepage.dart';
 
@@ -23,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
     _password.dispose();
     super.dispose();
   }
-
+  //เช็คว่าใส่ข้อมูลครบไหม ถ้าครบแล้วจะทำการเข้าสู่ระบบ ถ้าไม่ครบจะแสดงข้อความแจ้งเตือน
   Future<void> _doLogin() async {
     final email = _email.text.trim();
     final pass = _password.text;
@@ -34,7 +34,6 @@ class _LoginPageState extends State<LoginPage> {
       );
       return;
     }
-
     setState(() => _loading = true);
     try {
       final ok = await AuthenticationService().login(email, pass);
@@ -75,12 +74,11 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               const SizedBox(height: 100),
 
-              /// Logo
+              // Logo
               Image.asset("images/logo.png", height: 200),
-
               const SizedBox(height: 60),
 
-              /// Email Label
+              // Email Label
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -92,10 +90,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 8),
 
-              /// Email Field
+              // Email Field
               TextField(
                 controller: _email,
                 decoration: InputDecoration(
@@ -113,10 +110,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
 
-              /// Password Label
+              //Password Label
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -131,7 +127,7 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 8),
 
-              /// Password Field
+              // Password Field
               TextField(
                 controller: _password,
                 obscureText: true,
@@ -150,10 +146,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 80),
 
-              /// Login Button
+              //Login Button
               SizedBox(
                 width: 150,
                 height: 50,
@@ -178,10 +173,9 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                 ),
               ),
-
               const SizedBox(height: 30),
 
-              /// Divider
+              // Divider
               Row(
                 children: const [
                   Expanded(
@@ -193,10 +187,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 20),
 
-              /// Create Account
+              // Create Account
               InkWell(
                 onTap: () async {
                   await Navigator.push(
@@ -220,31 +213,31 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+ //pop up แจ้งเตือนอัตโนมัติ
   void showAutoPopup(String message, {bool success = true}) {
+    Color color = success ? Colors.green : Colors.red;
+    IconData icon = success ? Icons.check_circle : Icons.error;
 
-  Color color = success ? Colors.green : Colors.red;
-  IconData icon = success ? Icons.check_circle : Icons.error;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          content: Row(
+            children: [
+              Icon(icon, color: color),
+              const SizedBox(width: 10),
+              Expanded(child: Text(message)),
+            ],
+          ),
+        );
+      },
+    );
 
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) {
-      return AlertDialog(
-        content: Row(
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(width: 10),
-            Expanded(child: Text(message)),
-          ],
-        ),
-      );
-    },
-  );
-
-  Future.delayed(const Duration(seconds: 1), () {
-    if (mounted) {
-      Navigator.of(context).pop();
-    }
-  });
-}
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
 }

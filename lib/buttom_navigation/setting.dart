@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../login&register/login.dart';
 import '../data_detail/profile.dart';
-import '../data_detail/account.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -27,18 +26,6 @@ class SettingsPage extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const ProfilePage()),
               );
             }),
-
-            const Divider(),
-
-            _item("Your Account", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AccountPage()),
-              );
-            }),
-
-            const Spacer(),
-
             SizedBox(
               width: 200,
               height: 45,
@@ -55,7 +42,14 @@ class SettingsPage extends StatelessWidget {
                     (route) => false,
                   );
                 },
-                child: const Text("Logout"),
+                child: const Text(
+                  "Logout",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
 

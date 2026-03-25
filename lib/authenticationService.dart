@@ -28,7 +28,6 @@ class AuthenticationService {
     await prefs.remove('logged_in');
     await prefs.remove('uid');
     await prefs.remove('email');
-
     print('✅ SharedPreferences ถูกเคลียร์แล้ว');
   }
 
@@ -50,7 +49,11 @@ class AuthenticationService {
     }
   }
 
-  Future<bool> register(String email, String password, String username) async {
+  Future<String?> register(
+    String email,
+    String password,
+    String username,
+  ) async {
     try {
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
@@ -58,9 +61,9 @@ class AuthenticationService {
       );
 
       final user = userCredential.user;
-      if (user == null) return false;
+      if (user == null) return "unknown-error";
 
-      /// บันทึกข้อมูล user ลง Firestore
+      // ✅ บันทึก Firestore เฉยๆ (ไม่ต้องเช็คซ้ำ)
       await _db.collection('user').doc(user.uid).set({
         'username': username,
         'email': email,
@@ -70,10 +73,16 @@ class AuthenticationService {
 
       await _persistUser(user);
 
-      return true;
+      return null; // success
     } catch (e) {
-      print("register error: $e");
-      return false;
+      if (e is FirebaseAuthException) {
+        if (e.code == 'email-already-in-use') {
+          return "email-already-in-use";
+        }
+        return e.code;
+      }
+
+      return "unknown-error";
     }
   }
 

@@ -11,6 +11,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data_detail/bill_detail.dart';
 import '../data_detail/profile.dart';
+import '../data_detail/transaction_detail.dart';
+import '../data_detail/budget_detail.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -34,8 +36,6 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffF6F3F5),
-
-      /// FAB
       floatingActionButton: FloatingActionButton(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         backgroundColor: const Color.fromARGB(255, 126, 44, 43),
@@ -45,6 +45,7 @@ class _HomePageState extends State<HomePage> {
           size: 40,
         ),
         onPressed: () {
+          if (!mounted) return;
           setState(() {
             showMenu = !showMenu;
           });
@@ -66,15 +67,16 @@ class _HomePageState extends State<HomePage> {
                 "Main",
                 isActive: currentIndex == 0,
                 onTap: () {
+                  if (!mounted) return;
                   setState(() => currentIndex = 0);
                 },
               ),
-
               _NavItem(
                 Icons.business_center,
                 "Pocket",
                 isActive: currentIndex == 1,
                 onTap: () {
+                  if (!mounted) return;
                   setState(() => currentIndex = 1);
                 },
               ),
@@ -84,6 +86,7 @@ class _HomePageState extends State<HomePage> {
                 "Analysis",
                 isActive: currentIndex == 2,
                 onTap: () {
+                  if (!mounted) return;
                   setState(() => currentIndex = 2);
                 },
               ),
@@ -93,6 +96,7 @@ class _HomePageState extends State<HomePage> {
                 "Setting",
                 isActive: currentIndex == 3,
                 onTap: () {
+                  if (!mounted) return;
                   setState(() => currentIndex = 3);
                 },
               ),
@@ -120,12 +124,13 @@ class _HomePageState extends State<HomePage> {
                     _floatingItem(
                       "เพิ่มรายรับ / รายจ่าย",
                       Icons.attach_money,
-                      () {
+                      () async {
+                        if (!mounted) return;
                         setState(() {
                           showMenu = false;
                         });
 
-                        Navigator.push(
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const AddTransactionPage(),
@@ -133,7 +138,6 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                     ),
-
                     const SizedBox(height: 10),
 
                     /// เพิ่มเป้าหมาย
@@ -147,7 +151,6 @@ class _HomePageState extends State<HomePage> {
                         MaterialPageRoute(builder: (_) => const AddGoalPage()),
                       );
                     }),
-
                     const SizedBox(height: 10),
 
                     /// เพิ่มกำหนดการชำระ
@@ -155,6 +158,7 @@ class _HomePageState extends State<HomePage> {
                       "เพิ่มกำหนดการชำระ",
                       Icons.calendar_month,
                       () {
+                        if (!mounted) return;
                         setState(() {
                           showMenu = false;
                         });
@@ -178,7 +182,6 @@ class _HomePageState extends State<HomePage> {
 }
 
 /// ================= MAIN PAGE =================
-
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
@@ -195,72 +198,10 @@ class _MainPageState extends State<MainPage> {
   double balance = 0;
   Set<DateTime> incomeDays = {};
   Set<DateTime> expenseDays = {};
+  int notificationCount = 0;
 
   Map<DateTime, List<Map<String, dynamic>>> bills = {};
   List<Map<String, dynamic>> allItems = [];
-
-  Future<void> loadAllData(DateTime selectedDay) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-
-    DateTime start = DateTime(
-      selectedDay.year,
-      selectedDay.month,
-      selectedDay.day,
-    );
-    DateTime end = start.add(const Duration(days: 1));
-
-    List<Map<String, dynamic>> items = [];
-
-    /// transactions
-    final transSnap =
-        await FirebaseFirestore.instance
-            .collection("user")
-            .doc(uid)
-            .collection("transactions")
-            .where("date", isGreaterThanOrEqualTo: start)
-            .where("date", isLessThan: end)
-            .get();
-
-    for (var doc in transSnap.docs) {
-      var data = doc.data();
-      data["category"] = "transaction";
-      items.add(data);
-    }
-
-    /// budgets
-    final budgetSnap =
-        await FirebaseFirestore.instance
-            .collection("user")
-            .doc(uid)
-            .collection("budgets")
-            .get();
-
-    for (var doc in budgetSnap.docs) {
-      var data = doc.data();
-      data["category"] = "budget";
-      items.add(data);
-    }
-
-    /// bills
-    final billSnap =
-        await FirebaseFirestore.instance
-            .collection("user")
-            .doc(uid)
-            .collection("bills")
-            .where("date", isGreaterThanOrEqualTo: start)
-            .where("date", isLessThan: end)
-            .get();
-
-    for (var doc in billSnap.docs) {
-      var data = doc.data();
-      data["category"] = "bill";
-      items.add(data);
-    }
-
-    setState(() {
-      allItems = items;
-    });
-  }
 
   Future<void> loadBills() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -289,45 +230,45 @@ class _MainPageState extends State<MainPage> {
 
             data[date]!.add(bill);
           }
-
+          if (!mounted) return;
           setState(() {
             bills = data;
           });
         });
   }
 
-  Future<void> loadTransactionMarkers() async {
+  void loadTransactionMarkers() {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    final snapshot =
-        await FirebaseFirestore.instance
-            .collection("user")
-            .doc(uid)
-            .collection("transactions")
-            .get();
+    FirebaseFirestore.instance
+        .collection("user")
+        .doc(uid)
+        .collection("transactions")
+        .snapshots()
+        .listen((snapshot) {
+          Set<DateTime> income = {};
+          Set<DateTime> expense = {};
 
-    Set<DateTime> income = {};
-    Set<DateTime> expense = {};
+          for (var doc in snapshot.docs) {
+            final data = doc.data();
 
-    for (var doc in snapshot.docs) {
-      final data = doc.data();
+            Timestamp ts = data["date"];
+            DateTime d = ts.toDate();
 
-      Timestamp ts = data["date"];
-      DateTime d = ts.toDate();
+            DateTime key = DateTime(d.year, d.month, d.day);
 
-      DateTime key = DateTime(d.year, d.month, d.day);
-
-      if (data["type"] == "income") {
-        income.add(key);
-      } else {
-        expense.add(key);
-      }
-    }
-
-    setState(() {
-      incomeDays = income;
-      expenseDays = expense;
-    });
+            if (data["type"] == "income") {
+              income.add(key);
+            } else {
+              expense.add(key);
+            }
+          }
+          if (!mounted) return;
+          setState(() {
+            incomeDays = income;
+            expenseDays = expense;
+          });
+        });
   }
 
   final Map<DateTime, List<Map<String, dynamic>>> transactions = {
@@ -343,6 +284,10 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
+    DateTime today = DateTime.now();
+    _selectedDay = today;
+    _focusedDay = today;
+
     loadUserData();
     loadBills();
     checkBills();
@@ -351,12 +296,10 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    final rawList = _selectedDay == null ? [] : getTransactions(_selectedDay!);
+    final day = _selectedDay ?? DateTime.now();
 
-    final list =
-        rawList.where((item) {
-          return item["title"].toLowerCase().contains(searchText.toLowerCase());
-        }).toList();
+    DateTime start = DateTime(day.year, day.month, day.day);
+    DateTime end = start.add(const Duration(days: 1));
 
     return SafeArea(
       child: Padding(
@@ -390,78 +333,140 @@ class _MainPageState extends State<MainPage> {
                   const SizedBox(width: 12),
 
                   /// USER INFO
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        /// username
-                        Text(
-                          username.isEmpty ? "UserName" : username,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+/// USER INFO
+Expanded(
+  child: StreamBuilder<DocumentSnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection("user")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .snapshots(),
+    builder: (context, snapshot) {
+
+      if (!snapshot.hasData || !snapshot.data!.exists) {
+        return const Text("Loading...");
+      }
+
+      final data = snapshot.data!.data() as Map<String, dynamic>;
+
+      String username = data["username"] ?? "";
+      String accountName = data["accountName"] ?? "";
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+
+          /// username
+          Text(
+            username.isEmpty ? "UserName" : username,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+
+          const SizedBox(height: 4),
+
+          /// account name
+          Text(accountName.isEmpty ? "Account Name" : accountName),
+
+          const SizedBox(height: 6),
+
+          /// 🔥 balance realtime
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection("user")
+                .doc(FirebaseAuth.instance.currentUser!.uid)
+                .collection("transactions")
+                .snapshots(),
+            builder: (context, txSnap) {
+
+              if (!txSnap.hasData) {
+                return const Text("ยอดเงินคงเหลือ 0.00");
+              }
+
+              double income = 0;
+              double expense = 0;
+
+              for (var doc in txSnap.data!.docs) {
+                final tx = doc.data() as Map<String, dynamic>;
+
+                double amount = (tx["amount"] ?? 0).toDouble();
+
+                if (tx["type"] == "income") {
+                  income += amount;
+                } else {
+                  expense += amount;
+                }
+              }
+
+              double balance = income - expense;
+
+              return Text(
+                "ยอดเงินคงเหลือ ${balance.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  color: Color(0xff8B3A5A),
+                  fontWeight: FontWeight.w600,
+                ),
+              );
+            },
+          ),
+        ],
+      );
+    },
+  ),
+),
+
+                  StreamBuilder<QuerySnapshot>(
+                    stream:
+                        FirebaseFirestore.instance
+                            .collection("user")
+                            .doc(FirebaseAuth.instance.currentUser!.uid)
+                            .collection("notifications")
+                            .where("isRead", isEqualTo: false)
+                            .snapshots(),
+                    builder: (context, snapshot) {
+                      int count = snapshot.data?.docs.length ?? 0;
+
+                      return Stack(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.notifications_none),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationPage(),
+                                ),
+                              );
+                            },
                           ),
-                        ),
 
-                        /// account name
-                        Text(
-                          accountName.isEmpty ? "Account Name" : accountName,
-                          style: const TextStyle(fontSize: 13),
-                        ),
-
-                        /// balance realtime
-                        StreamBuilder<QuerySnapshot>(
-                          stream:
-                              FirebaseFirestore.instance
-                                  .collection("user")
-                                  .doc(FirebaseAuth.instance.currentUser!.uid)
-                                  .collection("transactions")
-                                  .snapshots(),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
-                              return const Text("ยอดเงินคงเหลือ 0.00");
-                            }
-
-                            double income = 0;
-                            double expense = 0;
-
-                            for (var doc in snapshot.data!.docs) {
-                              final data = doc.data() as Map<String, dynamic>;
-
-                              double amount =
-                                  (data["amount"] as num).toDouble();
-
-                              if (data["type"] == "income") {
-                                income += amount;
-                              } else {
-                                expense += amount;
-                              }
-                            }
-
-                            double balance = income - expense;
-
-                            return Text(
-                              "ยอดเงินคงเหลือ ${balance.toStringAsFixed(2)}",
-                              style: const TextStyle(
-                                color: Color(0xff8B3A5A),
-                                fontWeight: FontWeight.w600,
+                          if (count > 0)
+                            Positioned(
+                              right: 6,
+                              top: 6,
+                              child: IgnorePointer(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    count > 9 ? "9+" : count.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  /// notification
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const NotificationPage(),
-                        ),
+                            ),
+                        ],
                       );
                     },
                   ),
@@ -474,6 +479,7 @@ class _MainPageState extends State<MainPage> {
             /// SEARCH
             TextField(
               onChanged: (value) {
+                if (!mounted) return;
                 setState(() {
                   searchText = value;
                 });
@@ -492,6 +498,7 @@ class _MainPageState extends State<MainPage> {
                     );
 
                     if (picked != null) {
+                      if (!mounted) return;
                       setState(() {
                         _selectedDay = picked;
                         _focusedDay = picked;
@@ -544,12 +551,12 @@ class _MainPageState extends State<MainPage> {
 
                   selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                   onDaySelected: (selected, focused) {
+                    if (!mounted) return;
+
                     setState(() {
                       _selectedDay = selected;
                       _focusedDay = focused;
                     });
-
-                    loadAllData(selected);
                   },
 
                   calendarBuilders: CalendarBuilders(
@@ -618,91 +625,229 @@ class _MainPageState extends State<MainPage> {
             ),
 
             const SizedBox(height: 10),
-
-            /// LIST
             Expanded(
-              child:
-                  _selectedDay == null
-                      ? const Center(child: Text("เลือกวันที่"))
-                      : allItems.isEmpty
-                      ? const Center(child: Text("ไม่มีข้อมูล"))
-                      : ListView.builder(
-                        itemCount: allItems.length,
-                        itemBuilder: (context, index) {
-                          final item = allItems[index];
+              child: StreamBuilder(
+                stream:
+                    FirebaseFirestore.instance
+                        .collection("user")
+                        .doc(FirebaseAuth.instance.currentUser!.uid)
+                        .collection("transactions")
+                        .where("date", isGreaterThanOrEqualTo: start)
+                        .where("date", isLessThan: end)
+                        .snapshots(),
+                builder: (context, transSnap) {
+                  if (!transSnap.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final uid = FirebaseAuth.instance.currentUser!.uid;
+                  return StreamBuilder(
+                    stream:
+                        FirebaseFirestore.instance
+                            .collection("user")
+                            .doc(uid)
+                            .collection("bills")
+                            .where("date", isGreaterThanOrEqualTo: start)
+                            .where("date", isLessThan: end)
+                            .snapshots(),
+                    builder: (context, billSnap) {
+                      if (!billSnap.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                          IconData icon = Icons.attach_money;
-                          Color color = Colors.green;
-                          String title = "";
-                          String subtitle = "";
-
-                          if (item["category"] == "transaction") {
-                            icon =
-                                item["type"] == "income"
-                                    ? Icons.arrow_upward
-                                    : Icons.arrow_downward;
-
-                            color =
-                                item["type"] == "income"
-                                    ? Colors.green
-                                    : Colors.red;
-
-                            title = item["category_name"] ?? "Transaction";
-                            subtitle = "${item["amount"]} บาท";
+                      return StreamBuilder(
+                        stream:
+                            FirebaseFirestore.instance
+                                .collection("user")
+                                .doc(uid)
+                                .collection("budgets")
+                                .snapshots(),
+                        builder: (context, budgetSnap) {
+                          if (!budgetSnap.hasData) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
                           }
 
-                          if (item["category"] == "bill") {
-                            icon = Icons.receipt;
-                            color = Colors.orange;
+                          final transDocs = transSnap.data!.docs;
+                          final billDocs = billSnap.data!.docs;
+                          final budgetDocs = budgetSnap.data!.docs;
 
-                            title = item["bill_name"];
-                            subtitle = item["status"];
+                          List<Map<String, dynamic>> items = [];
+
+                          /// TRANSACTION
+                          for (var doc in transDocs) {
+                            var data = doc.data() as Map<String, dynamic>;
+                            data["itemType"] = "transaction";
+                            data["docId"] = doc.id;
+                            items.add(data);
                           }
 
-                          if (item["category"] == "budget") {
-                            icon = Icons.flag;
-                            color = Colors.blue;
-
-                            title = item["name"];
-                            subtitle = "Budget";
+                          /// BILL
+                          for (var doc in billDocs) {
+                            var data = doc.data() as Map<String, dynamic>;
+                            data["type"] = "bill";
+                            data["docId"] = doc.id;
+                            items.add(data);
                           }
 
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: color,
-                                  child: Icon(icon, color: Colors.white),
-                                ),
+                          /// BUDGET
+                          for (var doc in budgetDocs) {
+                            var data = doc.data() as Map<String, dynamic>;
 
-                                const SizedBox(width: 10),
+                            if (data["start_date"] != null &&
+                                data["end_date"] != null) {
+                              DateTime startDate =
+                                  (data["start_date"] as Timestamp).toDate();
 
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                              DateTime endDate =
+                                  (data["end_date"] as Timestamp).toDate();
+
+                              DateTime start = DateTime(
+                                startDate.year,
+                                startDate.month,
+                                startDate.day,
+                              );
+
+                              DateTime end = DateTime(
+                                endDate.year,
+                                endDate.month,
+                                endDate.day,
+                              );
+
+                              DateTime selected = DateTime(
+                                day.year,
+                                day.month,
+                                day.day,
+                              );
+
+                              /// เช็คช่วงเวลา
+                              if (!selected.isBefore(start) &&
+                                  !selected.isAfter(end)) {
+                                data["type"] = "budget";
+                                data["docId"] = doc.id;
+                                items.add(data);
+                              }
+                            }
+                          }
+                          if (items.isEmpty) {
+                            return const Center(
+                              child: Text("ไม่มีข้อมูลวันนี้"),
+                            );
+                          }
+
+                          return ListView.builder(
+                            itemCount: items.length,
+                            itemBuilder: (context, index) {
+                              final item = items[index];
+
+                              IconData icon;
+                              Color color = Colors.grey;
+                              String title;
+                              String subtitle;
+
+                              if (item["itemType"] == "transaction") {
+                                icon = IconData(
+                                  item["icon"] ?? Icons.attach_money.codePoint,
+                                  fontFamily: 'MaterialIcons',
+                                );
+                                if (item["itemType"] == "transaction") {
+                                  color =
+                                      (item["category"] == "income"
+                                          ? Colors.green
+                                          : Colors.red);
+                                }
+                                title = item["name"];
+                                subtitle = "${item["amount"]} บาท";
+                              } else if (item["type"] == "bill") {
+                                icon = Icons.receipt;
+                                color = Colors.orange;
+                                title = item["bill_name"] ?? "-";
+                                subtitle = item["status"] ?? "-";
+                              } else {
+                                icon = Icons.flag;
+                                color = Colors.blue;
+                                title = item["name"];
+                                subtitle = "Budget";
+                              }
+
+                              return InkWell(
+                                onTap: () {
+                                  if (item["itemType"] == "transaction") {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) => TransactionDetailPage(
+                                              docId: item["docId"],
+                                              data: item,
+                                            ),
+                                      ),
+                                    );
+                                  } else if (item["type"] == "bill") {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) => BillDetailPage(
+                                              docId: item["docId"],
+                                              data: item,
+                                            ),
+                                      ),
+                                    );
+                                  } else if (item["type"] == "budget") {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) => BudgetDetailPage(
+                                              docId: item["docId"],
+                                              data: item,
+                                            ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Row(
                                     children: [
-                                      Text(
-                                        title,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
+                                      CircleAvatar(
+                                        backgroundColor: color,
+                                        child: Icon(icon, color: Colors.white),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              title,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            Text(subtitle),
+                                          ],
                                         ),
                                       ),
-                                      Text(subtitle),
                                     ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           );
                         },
-                      ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -717,6 +862,7 @@ class _MainPageState extends State<MainPage> {
         await FirebaseFirestore.instance.collection("user").doc(uid).get();
 
     if (userDoc.exists) {
+      if (!mounted) return;
       setState(() {
         username = userDoc.data()?["username"] ?? "";
         accountName = userDoc.data()?["accountName"] ?? "";
@@ -732,7 +878,10 @@ class _MainPageState extends State<MainPage> {
         .doc(uid)
         .collection("bills")
         .snapshots()
-        .listen((snapshot) {
+        .listen((snapshot) async {
+          // ✅ ใส่ async ตรงนี้
+
+          int count = 0;
           DateTime now = DateTime.now();
 
           for (var doc in snapshot.docs) {
@@ -743,39 +892,58 @@ class _MainPageState extends State<MainPage> {
 
             int diff = billDate.difference(now).inDays;
 
-            if (diff <= 1 && data["status"] != "ชำระแล้ว") {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    "🔔 บิล ${data["bill_name"]} จะครบกำหนดพรุ่งนี้",
-                  ),
-                ),
-              );
+            if (diff <= 1 &&
+                data["status"] != "ชำระแล้ว" &&
+                data["notified"] != true) {
+              count++;
+              // ✅ สร้าง notification
+              await FirebaseFirestore.instance
+                  .collection("user")
+                  .doc(uid)
+                  .collection("notifications")
+                  .add({
+                    "title": "บิลใกล้ครบกำหนด",
+                    "message": "บิล ${data["bill_name"]} จะครบกำหนด",
+                    "created_at": Timestamp.now(),
+                    "isRead": false,
+                  });
+
+              // ✅ mark ว่าแจ้งแล้ว
+              await doc.reference.update({"notified": true});
             }
           }
+          if (!mounted) return;
+          setState(() {
+            notificationCount = count;
+          });
         });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }
 
-String _monthName(int month) {
-  const months = [
-    "",
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
+// String _monthName(int month) {
+//   const months = [
+//     "",
+//     "January",
+//     "February",
+//     "March",
+//     "April",
+//     "May",
+//     "June",
+//     "July",
+//     "August",
+//     "September",
+//     "October",
+//     "November",
+//     "December",
+//   ];
 
-  return months[month];
-}
+//   return months[month];
+// }
 
 /// ================= NAV ITEM =================
 
