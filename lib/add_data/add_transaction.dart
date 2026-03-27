@@ -54,7 +54,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           "type": type,
           "name": nameController.text,
           "category": selectedCategory,
-          "icon": selectedIcon.codePoint,
           "color": selectedColor.value,
           "amount": amount,
           "note": noteController.text,

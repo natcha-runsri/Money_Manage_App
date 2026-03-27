@@ -200,6 +200,23 @@ class _MainPageState extends State<MainPage> {
   Set<DateTime> expenseDays = {};
   int notificationCount = 0;
 
+  IconData getIconByCategory(String? category) {
+    switch (category) {
+      case "Food":
+        return Icons.restaurant;
+      case "Travel":
+        return Icons.flight;
+      case "Home":
+        return Icons.home;
+      case "Shopping":
+        return Icons.shopping_cart;
+      case "Health":
+        return Icons.favorite;
+      default:
+        return Icons.attach_money;
+    }
+  }
+
   Map<DateTime, List<Map<String, dynamic>>> bills = {};
   List<Map<String, dynamic>> allItems = [];
 
@@ -333,88 +350,95 @@ class _MainPageState extends State<MainPage> {
                   const SizedBox(width: 12),
 
                   /// USER INFO
-/// USER INFO
-Expanded(
-  child: StreamBuilder<DocumentSnapshot>(
-    stream: FirebaseFirestore.instance
-        .collection("user")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .snapshots(),
-    builder: (context, snapshot) {
+                  /// USER INFO
+                  Expanded(
+                    child: StreamBuilder<DocumentSnapshot>(
+                      stream:
+                          FirebaseFirestore.instance
+                              .collection("user")
+                              .doc(FirebaseAuth.instance.currentUser!.uid)
+                              .snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData || !snapshot.data!.exists) {
+                          return const Text("Loading...");
+                        }
 
-      if (!snapshot.hasData || !snapshot.data!.exists) {
-        return const Text("Loading...");
-      }
+                        final data =
+                            snapshot.data!.data() as Map<String, dynamic>;
 
-      final data = snapshot.data!.data() as Map<String, dynamic>;
+                        String username = data["username"] ?? "";
+                        String accountName = data["accountName"] ?? "";
 
-      String username = data["username"] ?? "";
-      String accountName = data["accountName"] ?? "";
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            /// username
+                            Text(
+                              username.isEmpty ? "UserName" : username,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+                            const SizedBox(height: 4),
 
-          /// username
-          Text(
-            username.isEmpty ? "UserName" : username,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
+                            /// account name
+                            Text(
+                              accountName.isEmpty
+                                  ? "Account Name"
+                                  : accountName,
+                            ),
 
-          const SizedBox(height: 4),
+                            const SizedBox(height: 6),
 
-          /// account name
-          Text(accountName.isEmpty ? "Account Name" : accountName),
+                            /// 🔥 balance realtime
+                            StreamBuilder<QuerySnapshot>(
+                              stream:
+                                  FirebaseFirestore.instance
+                                      .collection("user")
+                                      .doc(
+                                        FirebaseAuth.instance.currentUser!.uid,
+                                      )
+                                      .collection("transactions")
+                                      .snapshots(),
+                              builder: (context, txSnap) {
+                                if (!txSnap.hasData) {
+                                  return const Text("ยอดเงินคงเหลือ 0.00");
+                                }
 
-          const SizedBox(height: 6),
+                                double income = 0;
+                                double expense = 0;
 
-          /// 🔥 balance realtime
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection("user")
-                .doc(FirebaseAuth.instance.currentUser!.uid)
-                .collection("transactions")
-                .snapshots(),
-            builder: (context, txSnap) {
+                                for (var doc in txSnap.data!.docs) {
+                                  final tx = doc.data() as Map<String, dynamic>;
 
-              if (!txSnap.hasData) {
-                return const Text("ยอดเงินคงเหลือ 0.00");
-              }
+                                  double amount =
+                                      (tx["amount"] ?? 0).toDouble();
 
-              double income = 0;
-              double expense = 0;
+                                  if (tx["type"] == "income") {
+                                    income += amount;
+                                  } else {
+                                    expense += amount;
+                                  }
+                                }
 
-              for (var doc in txSnap.data!.docs) {
-                final tx = doc.data() as Map<String, dynamic>;
+                                double balance = income - expense;
 
-                double amount = (tx["amount"] ?? 0).toDouble();
-
-                if (tx["type"] == "income") {
-                  income += amount;
-                } else {
-                  expense += amount;
-                }
-              }
-
-              double balance = income - expense;
-
-              return Text(
-                "ยอดเงินคงเหลือ ${balance.toStringAsFixed(2)}",
-                style: const TextStyle(
-                  color: Color(0xff8B3A5A),
-                  fontWeight: FontWeight.w600,
-                ),
-              );
-            },
-          ),
-        ],
-      );
-    },
-  ),
-),
+                                return Text(
+                                  "ยอดเงินคงเหลือ ${balance.toStringAsFixed(2)}",
+                                  style: const TextStyle(
+                                    color: Color(0xff8B3A5A),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
 
                   StreamBuilder<QuerySnapshot>(
                     stream:
@@ -746,16 +770,13 @@ Expanded(
                               String subtitle;
 
                               if (item["itemType"] == "transaction") {
-                                icon = IconData(
-                                  item["icon"] ?? Icons.attach_money.codePoint,
-                                  fontFamily: 'MaterialIcons',
-                                );
-                                if (item["itemType"] == "transaction") {
-                                  color =
-                                      (item["category"] == "income"
-                                          ? Colors.green
-                                          : Colors.red);
-                                }
+                                icon = getIconByCategory(item["category"]);
+
+                                color =
+                                    (item["category"] == "income"
+                                        ? Colors.green
+                                        : Colors.red);
+
                                 title = item["name"];
                                 subtitle = "${item["amount"]} บาท";
                               } else if (item["type"] == "bill") {
@@ -817,8 +838,8 @@ Expanded(
                                   child: Row(
                                     children: [
                                       CircleAvatar(
-                                        backgroundColor: color,
-                                        child: Icon(icon, color: Colors.white),
+                                        backgroundColor: color.withOpacity(0.2),
+                                        child: Icon(icon, color: color),
                                       ),
                                       const SizedBox(width: 10),
                                       Expanded(
@@ -954,6 +975,22 @@ class _NavItem extends StatelessWidget {
   final bool isActive;
 
   const _NavItem(this.icon, this.label, {this.onTap, this.isActive = false});
+  IconData getIcon(String? name) {
+    switch (name) {
+      case "money":
+        return Icons.attach_money;
+      case "food":
+        return Icons.fastfood;
+      case "travel":
+        return Icons.directions_car;
+      case "shopping":
+        return Icons.shopping_cart;
+      case "home":
+        return Icons.home;
+      default:
+        return Icons.attach_money;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -327,20 +327,14 @@ class _TransactionPageState extends State<TransactionPage> {
                       bool isIncome = doc["type"] == "income";
 
                       final data = doc.data() as Map<String, dynamic>;
-
-                      IconData icon =
-                          data["icon"] != null
-                              ? IconData(
-                                data["icon"],
-                                fontFamily: 'MaterialIcons',
-                              )
-                              : Icons.category;
-
+                       IconData icon =
+                        categoryIcons[data["category"]] ?? Icons.category;
+                        
                       Color color =
                           data["color"] != null
                               ? Color(data["color"])
                               : Colors.grey;
-
+                     
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(12),

@@ -1,1 +1,39 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"money-management-d7dfb","appId":"1:322446162920:android:367837e586996ccc25425d","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"money-management-d7dfb","configurations":{"android":"1:322446162920:android:367837e586996ccc25425d","ios":"1:322446162920:ios:7c0ef4886e52b4b525425d","macos":"1:322446162920:ios:7c0ef4886e52b4b525425d","web":"1:322446162920:web:391424a6153a474825425d","windows":"1:322446162920:web:45d313805a19d2e525425d"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "money-management-d7dfb",
+          "appId": "1:322446162920:android:367837e586996ccc25425d",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "money-management-d7dfb",
+          "configurations": {
+            "android": "1:322446162920:android:367837e586996ccc25425d",
+            "ios": "1:322446162920:ios:7c0ef4886e52b4b525425d",
+            "macos": "1:322446162920:ios:7c0ef4886e52b4b525425d",
+            "web": "1:322446162920:web:391424a6153a474825425d",
+            "windows": "1:322446162920:web:45d313805a19d2e525425d"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
