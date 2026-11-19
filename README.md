@@ -2,7 +2,6 @@
 
 แอปจัดการการเงินส่วนบุคคลที่เขียนด้วย Flutter ใช้บันทึกรายรับ-รายจ่าย ตั้งงบประมาณ ติดตามบิลที่ต้องจ่าย และสรุปพฤติกรรมการใช้จ่ายเป็นกราฟ ข้อมูลของผู้ใช้แต่ละคนเก็บบน Firebase (Authentication + Cloud Firestore)
 
-<!-- TODO: เพิ่มภาพหน้าจอ (ตอนนี้ยังไม่มีไฟล์ภาพหน้าจอใน repo) -->
 
 ## ฟีเจอร์หลัก
 
@@ -134,7 +133,7 @@ flutter run            # หรือ flutter run -d <device_id>
    ```bash
    flutterfire configure
    ```
-4. ตั้ง Firestore Security Rules ให้ผู้ใช้เข้าถึงได้เฉพาะ `user/{uid}` ของตัวเอง <!-- TODO: เพิ่มไฟล์ firestore.rules ตัวอย่างใน repo -->
+4. ตั้ง Firestore Security Rules ให้ผู้ใช้เข้าถึงได้เฉพาะ `user/{uid}` ของตัวเอง 
 
 > แอปนี้ไม่ต้องใช้ไฟล์ `.env` หรือ API key อื่นนอกจากค่า Firebase ที่ `flutterfire configure` สร้างให้
 
@@ -157,4 +156,4 @@ firebase deploy --only hosting     # deploy โฟลเดอร์ build/web �
 
 ## ผู้พัฒนา
 
-- [natcha-runsri](https://github.com/natcha-runsri) <!-- TODO: เพิ่มชื่อจริง / สมาชิกในทีม / รายวิชา (ถ้ามี) -->
+- [natcha-runsri](https://github.com/natcha-runsri) นางสาวณัชชา รุนศรี รายวิชา System Analysis
