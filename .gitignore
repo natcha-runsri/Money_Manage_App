@@ -43,3 +43,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Secrets / signing (never commit)
+.env*
+*.pem
+*.p12
+*.jks
+*.keystore
+
+# Firebase CLI cache
+.firebase/
